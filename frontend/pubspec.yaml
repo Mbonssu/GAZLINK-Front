@@ -10,8 +10,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  provider: ^6.0.0
   shared_preferences: ^2.0.0
+  supabase_flutter: ^2.0.0  # SDK Supabase pour Flutter
+  geolocator: ^12.0.0       # Pour la géolocalisation
+  google_maps_flutter: ^2.6.0  # Pour les cartes
+  flutter_dotenv: ^5.1.0    # Pour les variables d'environnement
+  # intl: ^0.19.0             # Pour le formatage des dates
+  provider: ^6.1.0          # Pour la gestion d'état (optionnel)
   http: ^1.1.0
   intl: ^0.20.2
   flutter_svg: ^2.0.0

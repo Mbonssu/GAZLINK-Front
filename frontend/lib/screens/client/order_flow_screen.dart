@@ -548,6 +548,7 @@ class _OrderFlowScreenState extends State<OrderFlowScreen> {
         depotId: widget.depot.id,
         quantity6kg: _quantity6kg,
         quantity12kg: _quantity12kg,
+        subsidyAmount: (_quantity6kg + _quantity12kg) * 300,  // ← ajoute cette ligne
         totalPrice: (_quantity6kg * 4500) + (_quantity12kg * 6500),
         discount: (_quantity6kg + _quantity12kg) * 300,
         finalPrice: ((_quantity6kg * 4500) + (_quantity12kg * 6500)) -

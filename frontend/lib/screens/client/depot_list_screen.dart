@@ -140,7 +140,7 @@ class _DepotListScreenState extends State<DepotListScreen> {
           depots = depots.where((d) => d.isOpen).toList();
         }
         if (_filterInStock) {
-          depots = depots.where((d) => d.getTotalStock() > 0).toList();
+          depots = depots.where((d) => d.totalFullBottles > 0).toList();
         }
 
         if (depots.isEmpty) {

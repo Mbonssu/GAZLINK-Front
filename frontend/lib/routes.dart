@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'models/models.dart';
 
+
 // Shared Screens
 import 'screens/shared/splash_screen.dart';
 import 'screens/shared/login_screen.dart';
@@ -10,6 +11,7 @@ import 'screens/shared/forgot_password_screen.dart';
 import 'screens/shared/otp_verification_screen.dart';
 import 'screens/shared/role_selection_screen.dart';
 import 'screens/shared/profile_screen.dart';
+import 'screens/depot/depot_home_screen.dart';
 import 'screens/shared/edit_profile_screen.dart';
 import 'screens/shared/change_password_screen.dart';
 import 'screens/shared/settings_screen.dart';
@@ -58,6 +60,7 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String otpVerification = '/otp-verification';
   static const String roleSelection = '/role-selection';
+  static const String depotHome = '/depot-home';
 
   // Profile & Settings
   static const String profile = '/profile';
@@ -128,6 +131,10 @@ class AppRoutes {
         );
       case AppRoutes.roleSelection:
         return MaterialPageRoute(builder: (_) => const RoleSelectionScreen());
+
+      case AppRoutes.depotHome:
+        return MaterialPageRoute(builder: (_) => const DepotHomeScreen());
+
 
       // Profile & Settings
       case AppRoutes.profile:
@@ -278,3 +285,4 @@ class AppRoutes {
     }
   }
 }
+

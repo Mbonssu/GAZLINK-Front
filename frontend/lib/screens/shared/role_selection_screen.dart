@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../theme/glass/glass_components.dart';
 import '../../theme/glass/glass_constants.dart';
 

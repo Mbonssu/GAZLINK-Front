@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../data/mock_data.dart';
-import '../../models/models.dart';
 import '../../theme/glass/glass_components.dart';
 import '../../theme/glass/glass_constants.dart';
 

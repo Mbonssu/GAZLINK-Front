@@ -15,10 +15,8 @@ class OrderProvider extends ChangeNotifier {
   Future<void> fetchOrders() async {
     _isLoading = true;
     notifyListeners();
-
     await Future.delayed(Duration(seconds: 1));
     _orders = mockOrders;
-
     _isLoading = false;
     notifyListeners();
   }
@@ -32,21 +30,27 @@ class OrderProvider extends ChangeNotifier {
   void updateOrderStatus(String orderId, OrderStatus status) {
     final index = _orders.indexWhere((o) => o.id == orderId);
     if (index != -1) {
+      final o = _orders[index];
       _orders[index] = Order(
-        id: _orders[index].id,
-        clientId: _orders[index].clientId,
-        depotId: _orders[index].depotId,
-        quantity6kg: _orders[index].quantity6kg,
-        quantity12kg: _orders[index].quantity12kg,
-        totalPrice: _orders[index].totalPrice,
-        discount: _orders[index].discount,
-        finalPrice: _orders[index].finalPrice,
+        id: o.id,
+        clientId: o.clientId,
+        depotId: o.depotId,
+        quantity6kg: o.quantity6kg,
+        quantity12kg: o.quantity12kg,
+        totalPrice: o.totalPrice,
+        subsidyAmount: o.subsidyAmount,   // ← ajouté
+        discount: o.discount,
+        finalPrice: o.finalPrice,
+        priority: o.priority,             // ← ajouté
+        deliveryFee: o.deliveryFee,       // ← ajouté
         status: status,
-        paymentMethod: _orders[index].paymentMethod,
-        createdAt: _orders[index].createdAt,
+        paymentMethod: o.paymentMethod,
+        createdAt: o.createdAt,
         deliveredAt: status == OrderStatus.delivered
             ? DateTime.now()
-            : _orders[index].deliveredAt,
+            : o.deliveredAt,
+        deliveryAddress: o.deliveryAddress,
+        delivererId: o.delivererId,
       );
       notifyListeners();
     }

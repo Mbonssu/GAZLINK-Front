@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../theme/glass/glass_components.dart';
 import '../../theme/glass/glass_constants.dart';
 import '../../routes.dart';
+import '../../models/models.dart';
 import '../client/client_home_screen.dart';
 import '../deliverer/deliverer_home_screen.dart';
 
@@ -14,6 +15,8 @@ class SplashScreen extends StatefulWidget {
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
+
+
 
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
@@ -72,6 +75,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => DelivererHomeScreen()),
         );
+      } else if (user.role == UserRole.depot_manager) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.depotHome);
       } else {
         Navigator.of(context).pushReplacementNamed(AppRoutes.login);
       }
@@ -183,4 +188,5 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
   }
+
 }
