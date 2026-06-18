@@ -1,224 +1,389 @@
 import 'package:flutter/material.dart';
-import '../../theme/glass/glass_components.dart';
-import '../../theme/glass/glass_constants.dart';
+import 'package:flutter/services.dart';
+import 'dart:ui';
 
 class DeliveryHistoryScreen extends StatefulWidget {
-  const DeliveryHistoryScreen({super.key});
+  const DeliveryHistoryScreen({Key? key}) : super(key: key);
 
   @override
   State<DeliveryHistoryScreen> createState() => _DeliveryHistoryScreenState();
 }
 
-class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
-  String _selectedFilter = 'Tous';
-  final List<String> _filters = ['Tous', 'Livrées', 'Annulées'];
+class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
 
-  // Mock delivery history
-  final List<Map<String, dynamic>> _mockHistory = [
+  final _history = [
     {
       'id': 'DLV-001',
-      'orderId': 'CMD-001',
-      'clientName': 'Marie KOUASSI',
+      'clientName': 'Marie Kouassi',
       'address': 'Rue de la Paix, Akwa',
       'amount': 12400.0,
-      'status': 'Livrées',
+      'fee': 500.0,
+      'status': 'delivered',
+      'priority': 'Express',
       'date': DateTime.now().subtract(const Duration(hours: 2)),
       'rating': 5.0,
-      'tip': 500.0,
     },
     {
       'id': 'DLV-002',
-      'orderId': 'CMD-002',
-      'clientName': 'Jean MBARGA',
-      'address': 'Boulevard de la Liberté, Bonapriso',
+      'clientName': 'Jean Mbarga',
+      'address': 'Bld de la Liberté, Bonapriso',
       'amount': 6400.0,
-      'status': 'Livrées',
-      'date': DateTime.now().subtract(const Duration(days: 1)),
+      'fee': 0.0,
+      'status': 'delivered',
+      'priority': 'Normal',
+      'date': DateTime.now().subtract(const Duration(hours: 5)),
       'rating': 4.0,
-      'tip': 0.0,
     },
     {
       'id': 'DLV-003',
-      'orderId': 'CMD-003',
-      'clientName': 'Fatou DIALLO',
+      'clientName': 'Fatou Diallo',
       'address': 'Rue Nkongamba, Bali',
       'amount': 13000.0,
-      'status': 'Annulées',
-      'date': DateTime.now().subtract(const Duration(days: 2)),
+      'fee': 1000.0,
+      'status': 'cancelled',
+      'priority': 'Urgent',
+      'date': DateTime.now().subtract(const Duration(days: 1)),
       'rating': 0.0,
-      'tip': 0.0,
+    },
+    {
+      'id': 'DLV-004',
+      'clientName': 'Paul Eto\'o',
+      'address': 'Quartier Makepe, Douala',
+      'amount': 9700.0,
+      'fee': 500.0,
+      'status': 'delivered',
+      'priority': 'Express',
+      'date': DateTime.now().subtract(const Duration(days: 1, hours: 3)),
+      'rating': 5.0,
+    },
+    {
+      'id': 'DLV-005',
+      'clientName': 'Awa Traoré',
+      'address': 'Akwa Nord, Douala',
+      'amount': 3200.0,
+      'fee': 0.0,
+      'status': 'delivered',
+      'priority': 'Normal',
+      'date': DateTime.now().subtract(const Duration(days: 2)),
+      'rating': 4.5,
     },
   ];
 
-  List<Map<String, dynamic>> get _filteredHistory {
-    if (_selectedFilter == 'Tous') return _mockHistory;
-    return _mockHistory
-        .where((delivery) => delivery['status'] == _selectedFilter)
-        .toList();
+  List<Map<String, dynamic>> get _delivered =>
+      _history.where((d) => d['status'] == 'delivered').toList();
+  List<Map<String, dynamic>> get _cancelled =>
+      _history.where((d) => d['status'] == 'cancelled').toList();
+
+  double get _totalRevenue =>
+      _delivered.fold(0, (s, d) => s + (d['amount'] as double) + (d['fee'] as double));
+  double get _avgRating {
+    final rated = _delivered.where((d) => (d['rating'] as double) > 0).toList();
+    if (rated.isEmpty) return 0;
+    return rated.fold(0.0, (s, d) => s + (d['rating'] as double)) / rated.length;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
 
-    return GlassScaffold(
-      appBar: GlassAppBar(
-        title: const Text('Historique des livraisons'),
-      ),
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F1923),
       body: Column(
         children: [
-          // Stats Card
-          GlassCard(
-            margin: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildStatItem(
-                    'Total',
-                    '${_mockHistory.length}',
-                    Icons.local_shipping,
-                    brightness,
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  color: GlassConstants.borderColor(brightness),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    'Livrées',
-                    '${_mockHistory.where((d) => d['status'] == 'Livrées').length}',
-                    Icons.check_circle,
-                    brightness,
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  color: GlassConstants.borderColor(brightness),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    'Annulées',
-                    '${_mockHistory.where((d) => d['status'] == 'Annulées').length}',
-                    Icons.cancel,
-                    brightness,
-                  ),
-                ),
-              ],
-            ),
+          // Header
+          _Header(
+            total: _history.length,
+            delivered: _delivered.length,
+            revenue: _totalRevenue,
+            rating: _avgRating,
+            tabCtrl: _tabCtrl,
           ),
 
-          // Filter Chips
-          SizedBox(
-            height: 50,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _filters.length,
-              itemBuilder: (context, index) {
-                final filter = _filters[index];
-                final isSelected = filter == _selectedFilter;
-
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(filter),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() => _selectedFilter = filter);
-                    },
-                    backgroundColor:
-                        GlassConstants.adaptiveSurfaceColor(brightness),
-                    selectedColor:
-                        GlassConstants.accent.withValues(alpha: 0.3),
-                    labelStyle: TextStyle(
-                      color: isSelected
-                          ? GlassConstants.accent
-                          : GlassConstants.bodyColor(brightness),
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w500,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Deliveries List
+          // Liste
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _filteredHistory.length,
-              itemBuilder: (context, index) {
-                final delivery = _filteredHistory[index];
-                return _buildDeliveryCard(delivery, brightness);
-              },
+            child: TabBarView(
+              controller: _tabCtrl,
+              children: [
+                _HistoryList(items: _history),
+                _HistoryList(items: _delivered),
+                _HistoryList(items: _cancelled),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildStatItem(
-    String label,
-    String value,
-    IconData icon,
-    Brightness brightness,
-  ) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: GlassConstants.accent,
-          size: 24,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: GlassConstants.titleColor(brightness),
+// ─────────────────────────────────────────────
+// HEADER
+// ─────────────────────────────────────────────
+class _Header extends StatelessWidget {
+  final int total;
+  final int delivered;
+  final double revenue;
+  final double rating;
+  final TabController tabCtrl;
+
+  const _Header({
+    required this.total,
+    required this.delivered,
+    required this.revenue,
+    required this.rating,
+    required this.tabCtrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+
+    return Container(
+      color: const Color(0xFF0F1923),
+      child: Column(
+        children: [
+          SizedBox(height: top + 8),
+          // Nav row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    child: const Icon(Icons.arrow_back_rounded,
+                        color: Colors.white, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Text(
+                  'Historique',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: GlassConstants.mutedColor(brightness),
+          const SizedBox(height: 16),
+
+          // Stats row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _MiniStat(
+                    value: '$total', label: 'Total', color: const Color(0xFF4FC3F7)),
+                const SizedBox(width: 10),
+                _MiniStat(
+                    value: '$delivered',
+                    label: 'Livrées',
+                    color: const Color(0xFF00C853)),
+                const SizedBox(width: 10),
+                _MiniStat(
+                    value: '${_formatRevenue(revenue)} F',
+                    label: 'Revenus',
+                    color: const Color(0xFFFFD60A)),
+                const SizedBox(width: 10),
+                _MiniStat(
+                    value: '${rating.toStringAsFixed(1)}★',
+                    label: 'Note',
+                    color: const Color(0xFFFF9500)),
+              ],
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+
+          // TabBar
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TabBar(
+              controller: tabCtrl,
+              indicator: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              labelColor: Colors.white,
+              unselectedLabelColor:
+                  Colors.white.withValues(alpha: 0.4),
+              labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w700, fontSize: 13),
+              unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w400, fontSize: 13),
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(text: 'Toutes'),
+                Tab(text: 'Livrées'),
+                Tab(text: 'Annulées'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 
-  Widget _buildDeliveryCard(
-      Map<String, dynamic> delivery, Brightness brightness) {
-    final isDelivered = delivery['status'] == 'Livrées';
+  String _formatRevenue(double v) {
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}k';
+    return v.toStringAsFixed(0);
+  }
+}
 
-    return GlassCard(
-      margin: const EdgeInsets.only(bottom: 12),
+class _MiniStat extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+  const _MiniStat(
+      {required this.value, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border:
+              Border.all(color: color.withValues(alpha: 0.15)),
+        ),
+        child: Column(
+          children: [
+            Text(value,
+                style: TextStyle(
+                    color: color,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900)),
+            Text(label,
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    fontSize: 10)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// HISTORY LIST
+// ─────────────────────────────────────────────
+class _HistoryList extends StatelessWidget {
+  final List<Map<String, dynamic>> items;
+  const _HistoryList({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_rounded,
+                size: 48,
+                color: Colors.white.withValues(alpha: 0.15)),
+            const SizedBox(height: 12),
+            Text('Aucune livraison',
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    fontSize: 15)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      itemCount: items.length,
+      itemBuilder: (_, i) => _HistoryCard(item: items[i]),
+    );
+  }
+}
+
+class _HistoryCard extends StatelessWidget {
+  final Map<String, dynamic> item;
+  const _HistoryCard({required this.item});
+
+  Color get _priorityColor {
+    switch (item['priority'] as String) {
+      case 'Urgent':  return const Color(0xFFFF3B30);
+      case 'Express': return const Color(0xFFFF9500);
+      default:        return const Color(0xFF00C853);
+    }
+  }
+
+  bool get _isDelivered => item['status'] == 'delivered';
+
+  @override
+  Widget build(BuildContext context) {
+    final date = item['date'] as DateTime;
+    final fee = (item['fee'] as double);
+    final total = (item['amount'] as double) + fee;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151F2B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _isDelivered
+              ? Colors.white.withValues(alpha: 0.07)
+              : const Color(0xFFFF3B30).withValues(alpha: 0.2),
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              // Icône statut
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: isDelivered
-                      ? Colors.green.withValues(alpha: 0.2)
-                      : Colors.red.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
+                  shape: BoxShape.circle,
+                  color: (_isDelivered
+                          ? const Color(0xFF00C853)
+                          : const Color(0xFFFF3B30))
+                      .withValues(alpha: 0.12),
                 ),
                 child: Icon(
-                  isDelivered ? Icons.check_circle : Icons.cancel,
-                  color: isDelivered ? Colors.green : Colors.red,
-                  size: 24,
+                  _isDelivered
+                      ? Icons.check_circle_rounded
+                      : Icons.cancel_rounded,
+                  color: _isDelivered
+                      ? const Color(0xFF00C853)
+                      : const Color(0xFFFF3B30),
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 12),
@@ -227,122 +392,122 @@ class _DeliveryHistoryScreenState extends State<DeliveryHistoryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      delivery['clientName'],
-                      style: TextStyle(
-                        fontSize: 16,
+                      item['clientName'] as String,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.w700,
-                        color: GlassConstants.titleColor(brightness),
+                        fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      delivery['id'],
+                      item['id'] as String,
                       style: TextStyle(
-                        fontSize: 13,
-                        color: GlassConstants.mutedColor(brightness),
+                        color: Colors.white.withValues(alpha: 0.35),
+                        fontSize: 11,
+                        fontFamily: 'monospace',
                       ),
                     ),
                   ],
                 ),
               ),
-              Text(
-                '${delivery['amount'].toStringAsFixed(0)} FCFA',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: GlassConstants.accent,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${total.toInt()} FCFA',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                  if (fee > 0)
+                    Text(
+                      '+${fee.toInt()} F livraison',
+                      style: const TextStyle(
+                          color: Color(0xFF00C853),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600),
+                    ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
-              Icon(
-                Icons.location_on,
-                size: 14,
-                color: GlassConstants.mutedColor(brightness),
-              ),
-              const SizedBox(width: 6),
+              Icon(Icons.location_on_outlined,
+                  size: 13,
+                  color: Colors.white.withValues(alpha: 0.35)),
+              const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  delivery['address'],
+                  item['address'] as String,
                   style: TextStyle(
-                    fontSize: 13,
-                    color: GlassConstants.bodyColor(brightness),
-                  ),
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // Badge priorité
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _priorityColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  item['priority'] as String,
+                  style: TextStyle(
+                      color: _priorityColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Icon(Icons.access_time_rounded,
+                  size: 12,
+                  color: Colors.white.withValues(alpha: 0.3)),
+              const SizedBox(width: 4),
               Text(
-                _formatDate(delivery['date']),
+                _formatDate(date),
                 style: TextStyle(
-                  fontSize: 12,
-                  color: GlassConstants.mutedColor(brightness),
-                ),
+                    color: Colors.white.withValues(alpha: 0.35),
+                    fontSize: 11),
               ),
-              if (isDelivered && delivery['rating'] > 0)
-                Row(
-                  children: [
-                    Icon(Icons.star, size: 14, color: Colors.amber),
-                    const SizedBox(width: 4),
-                    Text(
-                      delivery['rating'].toStringAsFixed(1),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: GlassConstants.bodyColor(brightness),
-                      ),
-                    ),
-                  ],
+              const Spacer(),
+              if (_isDelivered && (item['rating'] as double) > 0) ...[
+                const Icon(Icons.star_rounded,
+                    size: 13, color: Color(0xFFFFD60A)),
+                const SizedBox(width: 3),
+                Text(
+                  (item['rating'] as double).toStringAsFixed(1),
+                  style: const TextStyle(
+                      color: Color(0xFFFFD60A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700),
                 ),
+              ],
             ],
           ),
-          if (delivery['tip'] > 0) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.attach_money, size: 14, color: Colors.green),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Pourboire: ${delivery['tip'].toStringAsFixed(0)} FCFA',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Aujourd\'hui à ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    } else if (difference.inDays == 1) {
-      return 'Hier';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
+  String _formatDate(DateTime d) {
+    final diff = DateTime.now().difference(d);
+    if (diff.inHours < 1) return 'Il y a ${diff.inMinutes} min';
+    if (diff.inHours < 24)
+      return 'Aujourd\'hui ${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+    if (diff.inDays == 1) return 'Hier';
+    return '${d.day}/${d.month}/${d.year}';
   }
 }
